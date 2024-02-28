@@ -88,8 +88,7 @@ class TrainApp:
             type=float,
         )
         self.cli_args = parser.parse_args(sys_argv)
-        for p in self.cli_args:
-            print(p)
+
 
 
     def _init_device(self):
