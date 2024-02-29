@@ -6,16 +6,16 @@ from torchvision.transforms import ToTensor
 import sys,argparse
 
 class FashionMnistData:
-    def __init__(self) -> None:
+    def __init__(self, batch_size=64) -> None:
         self._load_data()
-        self._init_dataloader()
+        self._init_dataloader(batch_size)
 
     def _load_data(self):
         # Download training data from open datasets.
         self.training_data = datasets.FashionMNIST(
             root="data",
             train=True,
-            download=True,
+            download=False,
             transform=ToTensor(),
         )
 
@@ -23,7 +23,7 @@ class FashionMnistData:
         self.test_data = datasets.FashionMNIST(
             root="data",
             train=False,
-            download=True,
+            download=False,
             transform=ToTensor(),
         )
 
@@ -39,7 +39,7 @@ class FashionMnistData:
 
 
 # Define model
-class NeuralNetwork(nn.Module):
+class SimpleNeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.flatten = nn.Flatten()
@@ -62,7 +62,7 @@ class TrainApp:
         self._init_device()
         self._init_model()
         self._init_lossfn_optimizer()
-        self.fashion_mnist = FashionMnistData()
+        self.fashion_mnist = FashionMnistData(self.cli_args.batch_size)
         self.train_dataloader = self.fashion_mnist.train_dataloader
         self.test_dataloader = self.fashion_mnist.test_dataloader
         self.test_data = self.fashion_mnist.test_data
@@ -88,7 +88,7 @@ class TrainApp:
             type=float,
         )
         self.cli_args = parser.parse_args(sys_argv)
-
+        print(f"epochs: {self.cli_args.epochs}, batch size: {self.cli_args.batch_size}, learning rate: {self.cli_args.learning_rate}.")
 
 
     def _init_device(self):
@@ -103,12 +103,12 @@ class TrainApp:
         print(f"Using {self.device} device")
 
     def _init_model(self):
-        self.model = NeuralNetwork().to(self.device)
+        self.model = SimpleNeuralNetwork().to(self.device)
         print(self.model)
 
-    def _init_lossfn_optimizer(self, lr=1e-3):
+    def _init_lossfn_optimizer(self):
         self.loss_fn = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=lr)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.cli_args.learning_rate)
 
     def _train(self):
         size = len(self.train_dataloader.dataset)
@@ -144,20 +144,22 @@ class TrainApp:
         correct /= size
         print(f"Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
-    def do_training(self, epochs=2):
+    def do_training(self):
+        epochs = self.cli_args.epochs
         for t in range(epochs):
-            print(f"Epoch {t+1}\n-------------------------------")
+            print(f"Epoch {t+1}/{epochs}\n-------------------------------")
             self._train()
             self._test()
         print("Done!")
 
-    def save_model(self):
-        torch.save(self.model.state_dict(), "model.pth")
-        print("Saved PyTorch Model State to model.pth")
+    def save_model(self, model_filename):
+        torch.save(self.model.state_dict(), model_filename)
+        print(f"Saved PyTorch Model State to {model_filename}")
 
-    def load_model(self):
-        self.model = NeuralNetwork().to(self.device)
-        self.model.load_state_dict(torch.load("model.pth"))
+    def load_model(self, model_filename):
+        self.model = SimpleNeuralNetwork().to(self.device)
+        self.model.load_state_dict(torch.load(model_filename))
+        print(f"PyTorch Model State loaded from {model_filename}")
 
     def do_serving(self):
         classes = [
