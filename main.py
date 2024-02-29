@@ -15,7 +15,7 @@ class FashionMnistData:
         self.training_data = datasets.FashionMNIST(
             root="data",
             train=True,
-            download=False,
+            download=True,
             transform=ToTensor(),
         )
 
@@ -23,7 +23,7 @@ class FashionMnistData:
         self.test_data = datasets.FashionMNIST(
             root="data",
             train=False,
-            download=False,
+            download=True,
             transform=ToTensor(),
         )
 
